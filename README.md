@@ -48,12 +48,14 @@ A lightweight, web-native presentation framework built with modern web technolog
 The main container that manages the entire presentation.
 
 **Attributes:**
-- `transition` - Default transition for all slides (`fade`, `slide`, `zoom`)
+- `transition` - Default transition for all slides (`fade`, `slide`, `slide-rotate`, `zoom`)
+- `transition-in` - Default entrance transition for all slides
+- `transition-out` - Default exit transition for all slides
 - `zen-mode` - Enable zen mode (hides navigation buttons)
 
 **Example:**
 ```html
-<slide-deck transition="fade" zen-mode>
+<slide-deck transition-in="slide" transition-out="fade" zen-mode>
   <!-- slides here -->
 </slide-deck>
 ```
@@ -64,12 +66,14 @@ Individual slides within the presentation.
 
 **Attributes:**
 - `current` - Marks the initially visible slide
-- `transition` - Override default transition for this slide
+- `transition` - Override both in/out transitions for this slide
+- `transition-in` - Override entrance transition for this slide
+- `transition-out` - Override exit transition for this slide
 - `id` - Unique identifier for hash navigation
 
 **Example:**
 ```html
-<slide-page current transition="zoom" id="intro">
+<slide-page current transition-in="slide-rotate" transition-out="zoom" id="intro">
   <h1>Introduction</h1>
   <p>Content here</p>
 </slide-page>
@@ -86,23 +90,27 @@ MiniPres uses CSS custom properties for comprehensive theming support:
 ### Controls Theming
 ```css
 :root {
+  /* Shared controls styling */
+  --controls-font-family: 'Arial', sans-serif;
+  --controls-font-size: 1.2rem;
+  --controls-background: rgba(0, 0, 0, 0.1);
+  
   /* Navigation buttons */
   --controls-button-background: rgba(255, 255, 255, 0.9);
-  --controls-button-text: #333;
+  --controls-button-color: #333;
+  --controls-button-hover-background: rgba(255, 255, 255, 1);
+  --controls-button-hover-color: #000;
   --controls-button-border: 1px solid rgba(0, 0, 0, 0.1);
-  --controls-button-border-radius: 8px;
-  --controls-button-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --controls-button-opacity: 1;
+  --controls-button-border-radius: 25px;
+  --controls-button-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  --controls-button-hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   
   /* Slide counter */
-  --controls-counter-background: rgba(0, 0, 0, 0.7);
-  --controls-counter-text: white;
-  --controls-counter-border-radius: 6px;
-  --controls-counter-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --controls-counter-opacity: 1;
-  
-  /* Controls backdrop */
-  --controls-backdrop-background: rgba(0, 0, 0, 0.05);
+  --controls-counter-background: rgba(0, 0, 0, 0.3);
+  --controls-counter-color: white;
+  --controls-counter-border: none;
+  --controls-counter-border-radius: 20px;
+  --controls-counter-shadow: none;
 }
 ```
 
@@ -122,8 +130,14 @@ slide-page {
 
 Add smooth animations to any element within slides:
 
-### Available Transitions
+### Available Slide Transitions
 - `fade` - Simple opacity transition
+- `slide` - Horizontal movement with 3D perspective
+- `slide-rotate` - Slide movement with Y-axis rotation
+- `zoom` - Scale transition with opacity
+
+### Available Element Transitions
+- `fade` - Simple opacity transition  
 - `slide-up` - Slides in from bottom
 - `slide-left` - Slides in from right
 - `zoom-in` - Scales in with opacity
@@ -142,16 +156,22 @@ Add smooth animations to any element within slides:
 ```
 
 ### Slide Transitions
-Set transitions at the deck or slide level:
+Set transitions at the deck or slide level with fine-grained control:
 
 ```html
-<!-- Global default -->
-<slide-deck transition="fade">
-  <slide-page>Uses fade transition</slide-page>
-  <slide-page transition="slide">Overrides with slide</slide-page>
-  <slide-page transition="zoom">Overrides with zoom</slide-page>
+<!-- Global defaults -->
+<slide-deck transition-in="slide" transition-out="zoom">
+  <slide-page>Uses slide in, zoom exit</slide-page>
+  <slide-page transition="fade">Uses fade for both in/out</slide-page>
+  <slide-page transition-in="slide-rotate">Overrides entrance only</slide-page>
 </slide-deck>
 ```
+
+**Transition Hierarchy:**
+1. Slide-level `transition-in`/`transition-out` (highest priority)
+2. Slide-level `transition` (sets both in/out)
+3. Deck-level `transition-in`/`transition-out`
+4. Deck-level `transition` (fallback)
 
 ## ⌨️ Navigation & Controls
 
@@ -285,20 +305,22 @@ src/
 
 ### Advanced Styling
 ```html
-<slide-deck transition="slide" style="
+<slide-deck transition-in="slide-rotate" transition-out="zoom" style="
   --background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+  --controls-font-family: 'Segoe UI', sans-serif;
+  --controls-background: rgba(255, 255, 255, 0.1);
 ">
   <slide-page class="title-slide" id="intro">
     <h1>Advanced Presentation</h1>
     <p transition="fade">With custom styling</p>
   </slide-page>
   
-  <slide-page transition="zoom">
+  <slide-page transition-in="zoom" transition-out="fade">
     <h1>Features</h1>
     <ul>
       <li transition="slide-up">Progressive animations</li>
       <li transition="slide-up">Responsive design</li>
-      <li transition="slide-up">Lazy image loading</li>
+      <li transition="slide-up">Individual transition control</li>
     </ul>
   </slide-page>
 </slide-deck>

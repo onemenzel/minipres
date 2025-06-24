@@ -46,7 +46,7 @@ const GLOBAL_STYLE = css`
   }
 
   /* Keyframe animations */
-  @keyframes fadeIn {
+  @keyframes fade {
     from {
       opacity: 0;
     }
@@ -56,17 +56,7 @@ const GLOBAL_STYLE = css`
     }
   }
 
-  @keyframes fadeOut {
-    from {
-      opacity: 1;
-    }
-
-    to {
-      opacity: 0;
-    }
-  }
-
-  @keyframes slideIn3DLeft {
+  @keyframes slideLeft {
     from {
       transform: scale(var(--slide-scale, 1)) translateX(100%) translateZ(-100px);
       opacity: 0;
@@ -78,19 +68,7 @@ const GLOBAL_STYLE = css`
     }
   }
 
-  @keyframes slideOut3DLeft {
-    from {
-      transform: scale(var(--slide-scale, 1)) translateX(0) translateZ(0);
-      opacity: 1;
-    }
-
-    to {
-      transform: scale(var(--slide-scale, 1)) translateX(-100%) translateZ(-100px);
-      opacity: 0;
-    }
-  }
-
-  @keyframes slideIn3DRight {
+  @keyframes slideRight {
     from {
       transform: scale(var(--slide-scale, 1)) translateX(-100%) translateZ(-100px);
       opacity: 0;
@@ -102,19 +80,31 @@ const GLOBAL_STYLE = css`
     }
   }
 
-  @keyframes slideOut3DRight {
+  @keyframes slideRotateLeft {
     from {
-      transform: scale(var(--slide-scale, 1)) translateX(0) translateZ(0);
-      opacity: 1;
+      transform: scale(var(--slide-scale, 1)) translateX(100%) translateZ(-100px) rotateY(-15deg);
+      opacity: 0;
     }
 
     to {
-      transform: scale(var(--slide-scale, 1)) translateX(100%) translateZ(-100px);
-      opacity: 0;
+      transform: scale(var(--slide-scale, 1)) translateX(0) translateZ(0) rotateY(0deg);
+      opacity: 1;
     }
   }
 
-  @keyframes zoomIn {
+  @keyframes slideRotateRight {
+    from {
+      transform: scale(var(--slide-scale, 1)) translateX(-100%) translateZ(-100px) rotateY(15deg);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(var(--slide-scale, 1)) translateX(0) translateZ(0) rotateY(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes zoom {
     from {
       transform: scale(calc(var(--slide-scale, 1) * 0.8));
       opacity: 0;
@@ -133,7 +123,7 @@ const GLOBAL_STYLE = css`
     }
 
     to {
-      transform: scale(calc(var(--slide-scale, 1) * 0.8));
+      transform: scale(calc(var(--slide-scale, 1) * 1.2));
       opacity: 0;
     }
   }
@@ -171,41 +161,64 @@ const GLOBAL_STYLE = css`
       opacity: 1;
     }
 
-    &[transition="fade"] {
-      &.slide-entering {
-        animation-name: fadeIn;
+    /* Transition-in animations */
+    &.slide-entering {
+      &[transition-in="fade"] {
+        animation-name: fade;
       }
 
-      &.slide-exiting {
-        animation-name: fadeOut;
-      }
-    }
-
-    &[transition="slide"] {
-      &.slide-entering {
-        animation-name: slideIn3DLeft;
+      &[transition-in="slide"] {
+        animation-name: slideLeft;
 
         &[data-direction="prev"] {
-          animation-name: slideIn3DRight;
+          animation-name: slideRight;
         }
       }
 
-      &.slide-exiting {
-        animation-name: slideOut3DLeft;
+      &[transition-in="slide-rotate"] {
+        animation-name: slideRotateLeft;
 
         &[data-direction="prev"] {
-          animation-name: slideOut3DRight;
+          animation-name: slideRotateRight;
         }
       }
-    }
 
-    &[transition="zoom"] {
-      &.slide-entering {
-        animation-name: zoomIn;
-      }
-
-      &.slide-exiting {
+      &[transition-in="zoom"] {
         animation-name: zoomOut;
+        animation-direction: reverse;
+      }
+    }
+
+    /* Transition-out animations */
+    &.slide-exiting {
+      &[transition-out="fade"] {
+        animation-name: fade;
+        animation-direction: reverse;
+      }
+
+      &[transition-out="slide"] {
+        animation-name: slideRight;
+        animation-direction: reverse;
+
+        &[data-direction="prev"] {
+          animation-name: slideLeft;
+          animation-direction: reverse;
+        }
+      }
+
+      &[transition-out="slide-rotate"] {
+        animation-name: slideRotateRight;
+        animation-direction: reverse;
+
+        &[data-direction="prev"] {
+          animation-name: slideRotateLeft;
+          animation-direction: reverse;
+        }
+      }
+
+      &[transition-out="zoom"] {
+        animation-direction: reverse;
+        animation-name: zoom;
       }
     }
 
@@ -368,7 +381,7 @@ const SLIDE_DECK_STYLE = css`
     flex-grow: 1;
     margin: 48px;
     box-sizing: border-box;
-    transform-style: preserve-3d;
+    /* transform-style: preserve-3d; */
     perspective: 1000px;
   }
 
@@ -376,35 +389,33 @@ const SLIDE_DECK_STYLE = css`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--controls-backdrop-padding, 20px 30px);
+    padding: 20px 30px;
     gap: 15px;
-    background: var(--controls-backdrop-background, rgba(0, 0, 0, 0.1));
-    backdrop-filter: var(--controls-backdrop-filter, blur(10px));
+    background: var(--controls-background, rgba(0, 0, 0, 0.1));
+    backdrop-filter: blur(10px);
     flex-shrink: 0;
-    border: var(--controls-backdrop-border, none);
-    border-radius: var(--controls-backdrop-border-radius, 0);
-    box-shadow: var(--controls-backdrop-shadow, none);
-    opacity: var(--controls-backdrop-opacity, 1);
+    font-family: var(--controls-font-family, inherit);
+    font-size: var(--controls-font-size, 1.2rem);
 
     button {
       padding: 15px 25px;
       background: var(--controls-button-background, rgba(255, 255, 255, 0.1));
-      color: var(--controls-button-text, #ffffff);
+      color: var(--controls-button-color, #ffffff);
       border: var(--controls-button-border, none);
       border-radius: var(--controls-button-border-radius, 25px);
-      cursor: pointer;
-      font-size: 1.2rem;
-      font-weight: 600;
       box-shadow: var(--controls-button-shadow, 0 4px 15px rgba(0, 0, 0, 0.2));
+      cursor: pointer;
+      font-size: inherit;
+      font-family: inherit;
+      font-weight: 600;
       backdrop-filter: blur(10px);
       transition: all 0.2s ease;
-      opacity: var(--controls-button-opacity, 1);
 
       &:hover {
         background: var(--controls-button-hover-background, rgba(255, 255, 255, 0.2));
-        transform: translateY(-2px);
+        color: var(--controls-button-hover-color, var(--controls-button-color, #ffffff));
         box-shadow: var(--controls-button-hover-shadow, 0 6px 20px rgba(0, 0, 0, 0.3));
-        opacity: var(--controls-button-hover-opacity, 1);
+        transform: translateY(-2px);
       }
 
       &:focus {
@@ -432,16 +443,16 @@ const SLIDE_DECK_STYLE = css`
   slide-counter {
     display: flex;
     align-items: center;
-    color: var(--controls-counter-text, #ffffff);
-    font-size: var(--controls-counter-font-size, 1.2rem);
+    color: var(--controls-counter-color, #ffffff);
     background: var(--controls-counter-background, rgba(0, 0, 0, 0.3));
-    padding: var(--controls-counter-padding, 10px 20px);
     border: var(--controls-counter-border, none);
     border-radius: var(--controls-counter-border-radius, 20px);
+    box-shadow: var(--controls-counter-shadow, none);
+    padding: 10px 20px;
+    font-size: inherit;
+    font-family: inherit;
     backdrop-filter: blur(10px);
     transition: opacity 0.3s ease;
-    opacity: var(--controls-counter-opacity, 1);
-    box-shadow: var(--controls-counter-shadow, none);
   }
 
   slide-progress {
@@ -559,11 +570,17 @@ class SlidePage extends HTMLElement {
    * Initializes the list of animated elements, sets up transition attribute, and resets state.
    */
   connectedCallback() {
-    // Set up transition attribute if not already set
-    if (!this.hasAttribute("transition")) {
-      const deck = this.closest("slide-deck");
-      const defaultTransition = deck?.defaultTransition || "fade";
-      this.setAttribute("transition", defaultTransition);
+    const deck = this.closest("slide-deck");
+
+    // Set up transition attributes if not already set
+    if (!this.hasAttribute("transition-in")) {
+      const transitionIn = this.getAttribute("transition") || deck?.defaultTransitionIn || "fade";
+      this.setAttribute("transition-in", transitionIn);
+    }
+
+    if (!this.hasAttribute("transition-out")) {
+      const transitionOut = this.getAttribute("transition") || deck?.defaultTransitionOut || "fade";
+      this.setAttribute("transition-out", transitionOut);
     }
 
     this.animatedElements = Array.from(this.querySelectorAll("[transition]"));
@@ -735,6 +752,8 @@ class SlideDeck extends HTMLElement {
     this.setupMutationObserver();
 
     this.defaultTransition = this.getAttribute("transition") || "fade";
+    this.defaultTransitionIn = this.getAttribute("transition-in") || this.defaultTransition;
+    this.defaultTransitionOut = this.getAttribute("transition-out") || this.defaultTransition;
     this.isArtifactEnvironment = document.body.id === "artifacts-component-root-html";
 
     this.keydownHandler = this.handleKeydown.bind(this);
@@ -798,7 +817,7 @@ class SlideDeck extends HTMLElement {
       for (const mutation of mutations) {
         if (mutation.type === "childList") {
           let shouldUpdateIndices = false;
-          
+
           // Remove invalid children as they're added
           for (const node of mutation.addedNodes) {
             if (node.nodeType === 1 && node.tagName !== "SLIDE-PAGE") {
@@ -807,7 +826,7 @@ class SlideDeck extends HTMLElement {
               shouldUpdateIndices = true;
             }
           }
-          
+
           // Check if any slide-page nodes were removed
           for (const node of mutation.removedNodes) {
             if (node.nodeType === 1 && node.tagName === "SLIDE-PAGE") {
@@ -815,15 +834,19 @@ class SlideDeck extends HTMLElement {
               break;
             }
           }
-          
+
           // Update IDs and indices if slides were added/removed
           if (shouldUpdateIndices) {
             this.setupSlideIds();
           }
         } else if (mutation.type === "attributes") {
           const target = mutation.target;
-          
-          if (mutation.attributeName === "current" && target.tagName === "SLIDE-PAGE" && target.hasAttribute("current")) {
+
+          if (
+            mutation.attributeName === "current" &&
+            target.tagName === "SLIDE-PAGE" &&
+            target.hasAttribute("current")
+          ) {
             // External script set current on a slide - clear others and update state
             this.ensureSingleCurrentSlide(target);
             this.updateUI();
