@@ -547,9 +547,16 @@ class SlidePage extends HTMLElement {
 
   /**
    * Called when the element is added to the DOM.
-   * Initializes the list of animated elements and resets their state.
+   * Initializes the list of animated elements, sets up transition attribute, and resets state.
    */
   connectedCallback() {
+    // Set up transition attribute if not already set
+    if (!this.hasAttribute("transition")) {
+      const deck = this.closest("slide-deck");
+      const defaultTransition = deck?.defaultTransition || "fade";
+      this.setAttribute("transition", defaultTransition);
+    }
+
     this.animatedElements = Array.from(this.querySelectorAll("[transition]"));
     this.reset();
   }
@@ -623,6 +630,17 @@ class SlidePage extends HTMLElement {
       element.classList.remove("animate-in");
     }
   }
+
+  /**
+   * Preloads all lazy-loaded images in this slide by changing them to eager loading.
+   * Improves performance by loading images before they're needed.
+   */
+  preloadImages() {
+    const lazyImages = this.querySelectorAll('img[loading="lazy"]');
+    for (const img of lazyImages) {
+      img.loading = "eager";
+    }
+  }
 }
 
 /**
@@ -675,10 +693,6 @@ class SlideViewport extends HTMLElement {
  * Provides keyboard navigation, hash-based URLs, fullscreen support, and accessibility features.
  */
 class SlideDeck extends HTMLElement {
-  /** @type {number} */
-  currentIndex = 0;
-  /** @type {SlidePage[]} */
-  slides = [];
   /** @type {string} */
   defaultTransition;
   /** @type {boolean} */
@@ -691,6 +705,8 @@ class SlideDeck extends HTMLElement {
   keydownHandler;
   /** @type {Function} */
   hashChangeHandler;
+  /** @type {MutationObserver} */
+  mutationObserver;
 
   /** Creates a new SlideDeck instance with shadow DOM. */
   constructor() {
@@ -706,9 +722,10 @@ class SlideDeck extends HTMLElement {
    * Initializes all slide deck functionality including event listeners, navigation, and accessibility.
    */
   connectedCallback() {
-    this.slides = Array.from(this.querySelectorAll("slide-page"));
-    this.defaultTransition = this.getAttribute("transition") || "fade";
+    this.cleanupSlot();
+    this.setupMutationObserver();
 
+    this.defaultTransition = this.getAttribute("transition") || "fade";
     this.isArtifactEnvironment = document.body.id === "artifacts-component-root-html";
 
     this.keydownHandler = this.handleKeydown.bind(this);
@@ -726,7 +743,6 @@ class SlideDeck extends HTMLElement {
     this.focus();
 
     this.setupSlideIds();
-    this.setupSlideTransitions();
     this.initializeFromHash();
     this.preloadAdjacentImages();
     this.updateUI();
@@ -746,23 +762,109 @@ class SlideDeck extends HTMLElement {
     if (this.hashChangeHandler) {
       window.removeEventListener("hashchange", this.hashChangeHandler);
     }
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+    }
   }
 
   /**
-   * Assigns unique IDs to slides that don't already have them.
-   * IDs are used for hash-based navigation.
+   * Removes any non-slide-page children from the slot.
+   * Ensures only valid slide elements are present.
+   */
+  cleanupSlot() {
+    for (const child of Array.from(this.children)) {
+      if (child.tagName !== "SLIDE-PAGE") {
+        child.remove();
+      }
+    }
+  }
+
+  /**
+   * Sets up MutationObserver to watch for DOM changes.
+   * Handles current attribute changes and invalid child additions.
+   */
+  setupMutationObserver() {
+    this.mutationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "childList") {
+          let shouldUpdateIndices = false;
+          
+          // Remove invalid children as they're added
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === 1 && node.tagName !== "SLIDE-PAGE") {
+              node.remove();
+            } else if (node.nodeType === 1 && node.tagName === "SLIDE-PAGE") {
+              shouldUpdateIndices = true;
+            }
+          }
+          
+          // Check if any slide-page nodes were removed
+          for (const node of mutation.removedNodes) {
+            if (node.nodeType === 1 && node.tagName === "SLIDE-PAGE") {
+              shouldUpdateIndices = true;
+              break;
+            }
+          }
+          
+          // Update IDs and indices if slides were added/removed
+          if (shouldUpdateIndices) {
+            this.setupSlideIds();
+          }
+        } else if (mutation.type === "attributes" && mutation.attributeName === "current") {
+          const target = mutation.target;
+          if (target.tagName === "SLIDE-PAGE" && target.hasAttribute("current")) {
+            // External script set current on a slide - clear others and update state
+            this.ensureSingleCurrentSlide(target);
+            this.updateUI();
+            this.updateHash();
+            this.preloadAdjacentImages();
+          }
+        }
+      }
+    });
+
+    this.mutationObserver.observe(this, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["current"],
+    });
+  }
+
+  /**
+   * Ensures only one slide has the current attribute.
+   * @param {Element} currentSlide The slide that should be current
+   */
+  ensureSingleCurrentSlide(currentSlide) {
+    for (const slide of this.querySelectorAll("slide-page[current]")) {
+      if (slide !== currentSlide) {
+        slide.removeAttribute("current");
+      }
+    }
+  }
+
+  /**
+   * Assigns unique IDs and data-index attributes to slides.
+   * IDs are used for hash-based navigation, data-index for position-based operations.
    */
   setupSlideIds() {
-    for (let i = 0; i < this.slides.length; i++) {
-      if (!this.slides[i].id) {
-        this.slides[i].id = `slide-${i + 1}`;
+    const slides = this.slidePages;
+    for (let i = 0; i < slides.length; i++) {
+      if (!slides[i].id) {
+        slides[i].id = `slide-${i + 1}`;
       }
+      slides[i].dataset.index = i.toString();
     }
   }
 
   /** @returns {SlidePage} The current slide element */
   get currentSlide() {
-    return this.slides[this.currentIndex];
+    return this.querySelector("slide-page[current]");
+  }
+
+  /** @returns {NodeList} All slide pages */
+  get slidePages() {
+    return this.querySelectorAll("slide-page");
   }
 
   /** @returns {Element} The slide-deck-root element */
@@ -775,49 +877,42 @@ class SlideDeck extends HTMLElement {
    * In artifact environment, always starts from first slide.
    */
   initializeFromHash() {
+    const slides = this.slidePages;
+    if (slides.length === 0) return;
+
     if (this.isArtifactEnvironment) {
-      this.currentIndex = 0;
-      this.slides[0].setAttribute("current", "");
+      slides[0].setAttribute("current", "");
       this.currentSlide.reset();
       return;
     }
 
     const hash = window.location.hash.slice(1);
     if (hash) {
-      const slideIndex = this.findSlideIndexById(hash);
-      if (slideIndex !== -1) {
-        this.currentIndex = slideIndex;
-        for (const slide of this.slides) {
+      const targetSlide = this.querySelector(`slide-page#${hash}`);
+      if (targetSlide) {
+        // Clear all current attributes
+        for (const slide of this.querySelectorAll("slide-page[current]")) {
           slide.removeAttribute("current");
         }
-        this.currentSlide.setAttribute("current", "");
-        this.currentSlide.reset();
+        targetSlide.setAttribute("current", "");
+        targetSlide.reset();
         return;
       }
     }
 
-    this.currentIndex = 0;
-    this.slides[0].setAttribute("current", "");
+    // Default to first slide
+    slides[0].setAttribute("current", "");
     this.currentSlide.reset();
     this.updateHash();
-  }
-
-  /**
-   * Finds the index of a slide by its ID.
-   * @param {string} id The slide ID to search for
-   * @returns {number} The slide index, or -1 if not found
-   */
-  findSlideIndexById(id) {
-    return this.slides.findIndex((slide) => slide.id === id);
   }
 
   /** Handles browser hash changes to navigate to the corresponding slide. */
   handleHashChange() {
     const hash = window.location.hash.slice(1);
     if (hash) {
-      const slideIndex = this.findSlideIndexById(hash);
-      if (slideIndex !== -1 && slideIndex !== this.currentIndex) {
-        this.goToSlideByIndex(slideIndex);
+      const targetSlide = this.querySelector(`slide-page#${hash}`);
+      if (targetSlide && targetSlide !== this.currentSlide) {
+        this.goToSlide(targetSlide);
       }
     }
   }
@@ -843,25 +938,32 @@ class SlideDeck extends HTMLElement {
   }
 
   /**
-   * Navigates to a slide by its index.
-   * @param {number} index The target slide index
+   * Navigates to a specific slide element.
+   * @param {Element} targetSlide The target slide element
+   * @param {string} [direction] The direction of navigation ("next" or "prev"), auto-detected if not provided
    */
-  goToSlideByIndex(index) {
-    if (index < 0 || index >= this.slides.length || index === this.currentIndex) return;
+  goToSlide(targetSlide, direction) {
+    if (!targetSlide || targetSlide === this.currentSlide) return;
 
-    const direction = index > this.currentIndex ? "next" : "prev";
-    this.goToSlide(index, direction);
-  }
-
-  /** Sets up transition attributes for all slides based on default or individual settings. */
-  setupSlideTransitions() {
-    for (const slide of this.slides) {
-      if (!slide.hasAttribute("transition")) {
-        slide.setAttribute("transition", this.defaultTransition);
+    // Auto-detect direction if not provided
+    if (!direction) {
+      const current = this.currentSlide;
+      if (current) {
+        let sibling = current.nextElementSibling;
+        while (sibling) {
+          if (sibling === targetSlide) {
+            direction = "next";
+            break;
+          }
+          sibling = sibling.nextElementSibling;
+        }
+        if (!direction) direction = "prev";
+      } else {
+        direction = "next";
       }
     }
-    
-    this.currentSlide.setAttribute("current", "");
+
+    this.performSlideTransition(targetSlide, direction);
   }
 
   /**
@@ -891,7 +993,7 @@ class SlideDeck extends HTMLElement {
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
-        LiveRegion.announce("Entered fullscreen mode");
+        LiveRegion.announce("Entered fullscreen mode. Exit using one of the keys F or Esc.");
       } else {
         await document.exitFullscreen();
         LiveRegion.announce("Exited fullscreen mode");
@@ -913,14 +1015,20 @@ class SlideDeck extends HTMLElement {
 
   /** Navigates to the next slide. */
   nextSlide() {
-    if (this.isTransitioning || this.currentIndex >= this.slides.length - 1) return;
-    this.goToSlide(this.currentIndex + 1, "next");
+    if (this.isTransitioning) return;
+    const next = this.currentSlide?.nextElementSibling;
+    if (next) {
+      this.goToSlide(next, "next");
+    }
   }
 
   /** Navigates to the previous slide. */
   previousSlide() {
-    if (this.isTransitioning || this.currentIndex <= 0) return;
-    this.goToSlide(this.currentIndex - 1, "prev");
+    if (this.isTransitioning) return;
+    const prev = this.currentSlide?.previousElementSibling;
+    if (prev) {
+      this.goToSlide(prev, "prev");
+    }
   }
 
   /** Toggles zen mode, which hides most UI controls for distraction-free presentation. */
@@ -931,29 +1039,37 @@ class SlideDeck extends HTMLElement {
 
   /**
    * Core slide navigation method with animated transitions.
-   * @param {number} index The target slide index
+   * @param {Element} targetSlide The target slide element
    * @param {string} [direction="next"] The direction of navigation ("next" or "prev")
    */
-  goToSlide(index, direction = "next") {
-    if (this.isTransitioning || index < 0 || index >= this.slides.length) return;
+  performSlideTransition(targetSlide, direction = "next") {
+    if (this.isTransitioning || !targetSlide) return;
 
     const currentSlide = this.currentSlide;
-    const nextSlide = this.slides[index];
+    if (!currentSlide) {
+      // No current slide, just set the target as current
+      targetSlide.setAttribute("current", "");
+      targetSlide.reset({ back: direction === "prev" });
+      this.updateUI();
+      this.updateHash();
+      return;
+    }
+
     this.isTransitioning = true;
 
-    currentSlide.setAttribute("data-direction", direction);
-    nextSlide.setAttribute("data-direction", direction);
+    currentSlide.dataset.direction = direction;
+    targetSlide.dataset.direction = direction;
 
     let aniCtl = new AbortController();
 
     const cleanupTransition = () => {
       currentSlide.removeAttribute("current");
-      nextSlide.setAttribute("current", "");
+      targetSlide.setAttribute("current", "");
 
       currentSlide.classList.remove("slide-exiting");
-      nextSlide.classList.remove("slide-entering");
-      currentSlide.removeAttribute("data-direction");
-      nextSlide.removeAttribute("data-direction");
+      targetSlide.classList.remove("slide-entering");
+      delete currentSlide.dataset.direction;
+      delete targetSlide.dataset.direction;
 
       aniCtl.abort();
 
@@ -963,21 +1079,21 @@ class SlideDeck extends HTMLElement {
     };
 
     requestAnimationFrame(() => {
-      nextSlide.reset({ back: direction == "prev" });
+      targetSlide.reset({ back: direction === "prev" });
 
       currentSlide.classList.add("slide-exiting");
-      nextSlide.classList.add("slide-entering");
+      targetSlide.classList.add("slide-entering");
 
-      this.currentIndex = index;
       this.updateHash();
 
-      const slideTitle = nextSlide.querySelector("h1, h2, h3")?.textContent || `Slide ${index + 1}`;
+      const slideIndex = parseInt(targetSlide.dataset.index || "0", 10);
+      const slideTitle = targetSlide.querySelector("h1, h2, h3")?.textContent || `Slide ${slideIndex + 1}`;
       LiveRegion.announce(`Now on ${slideTitle}`);
 
       Promise.race([
         Promise.all([
           new Promise((res) => void currentSlide.addEventListener("animationend", res, { signal: aniCtl.signal })),
-          new Promise((res) => void nextSlide.addEventListener("animationend", res, { signal: aniCtl.signal })),
+          new Promise((res) => void targetSlide.addEventListener("animationend", res, { signal: aniCtl.signal })),
         ]),
         new Promise((res) => void setTimeout(res, 1000)), // fallback cleanup
       ])
@@ -991,37 +1107,49 @@ class SlideDeck extends HTMLElement {
 
   /**
    * Preloads images in the current slide and adjacent slides for better performance.
-   * Changes lazy-loaded images to eager loading.
+   * Delegates to each slide's preloadImages() method.
    */
   preloadAdjacentImages() {
-    const start = Math.max(0, this.currentIndex - 1);
-    const end = Math.min(this.slides.length, this.currentIndex + 2);
-    
-    for (let i = start; i < end; i++) {
-      const lazyImages = this.slides[i].querySelectorAll('img[loading="lazy"]');
-      for (const img of lazyImages) {
-        img.loading = "eager";
-      }
+    const current = this.currentSlide;
+    if (!current) return;
+
+    const slidesToPreload = [current.previousElementSibling, current, current.nextElementSibling].filter(Boolean);
+
+    for (const slide of slidesToPreload) {
+      slide.preloadImages();
     }
   }
 
   /** Updates the presentation UI elements (progress bar, counter, button states). */
   updateUI() {
+    const current = this.currentSlide;
+    const slides = this.slidePages;
+    const slideCount = slides.length;
+
+    if (!current || slideCount === 0) return;
+
+    // Get current slide position from data-index
+    const currentIndex = parseInt(current.dataset.index || "0", 10);
+    const currentPosition = currentIndex + 1;
+
+    // Update progress bar
     const progress = this.shadow.querySelector("slide-progress");
     if (progress) {
-      const percentage = ((this.currentIndex + 1) / this.slides.length) * 100;
+      const percentage = (currentPosition / slideCount) * 100;
       progress.style.setProperty("--progress", `${percentage}%`);
     }
 
+    // Update counter
     const counter = this.shadow.querySelector("slide-counter");
     if (counter) {
-      counter.textContent = `${this.currentIndex + 1} / ${this.slides.length}`;
+      counter.textContent = `${currentPosition} / ${slideCount}`;
     }
 
+    // Update button states
     const prevBtn = this.shadow.getElementById("prevBtn");
     const nextBtn = this.shadow.getElementById("nextBtn");
-    if (prevBtn) prevBtn.disabled = this.currentIndex === 0;
-    if (nextBtn) nextBtn.disabled = this.currentIndex === this.slides.length - 1;
+    if (prevBtn) prevBtn.disabled = !current.previousElementSibling;
+    if (nextBtn) nextBtn.disabled = !current.nextElementSibling;
   }
 
   /** Updates hash information display based on environment. */
