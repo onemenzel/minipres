@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom Slides Framework Demo</title>
+
+  <script src="minipres.js"></script>
+
+  <!-- Custom Styles -->
+  <style>
+    :root {
+      --default-deck-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --default-slide-background: white;
+      --primary-color: #667eea;
+      --secondary-color: #764ba2;
+      --text-color: #2d3748;
+      --text-color-light: #4a5568;
+      --accent-color: #667eea;
+      --surface-color: white;
+      --control-background: rgba(0, 0, 0, 0.1);
+      --button-background: rgba(255, 255, 255, 0.9);
+      --button-text: #4a5568;
+      --progress-color: white;
+      --counter-background: rgba(0, 0, 0, 0.3);
+      --counter-text: white;
+      --transition-duration: .5s;
+      --transition-duration-short: .25s;
+    }
+
+    .title-slide {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+
+      h1 {
+        color: white;
+        font-size: 6rem;
+        margin-bottom: 2rem;
+      }
+
+      p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 3rem;
+      }
+    }
+
+    my-icon {
+        width: 120px;
+        height: 120px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+  </style>
+</head>
+
+<body>
+  <slide-deck transition="fade" aria-label="Presentation: Custom Slides Framework" style="
+    --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --demo-theme-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --demo-pink-gradient: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+    --demo-blue-gradient: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+  ">
+    <slide-page current class="title-slide" id="welcome" style="background: var(--demo-theme-gradient)">
+      <h1>🚀 Custom Slides</h1>
+      <p>A Modern Web-Native Presentation Framework</p>
+      <p style="font-size: 2rem; margin-top: 3rem; opacity: 0.8">
+        Built with Web Components & Modern CSS
+      </p>
+    </slide-page>
+
+    <slide-page transition="slide" id="features" style="background: white">
+      <h1>✨ Key Features</h1>
+      <ul>
+        <li transition="slide-up">📱 Responsive scaling with fixed aspect ratio</li>
+        <li transition="slide-up">🎨 Clean semantic HTML structure</li>
+        <li transition="slide-up">⚡ Minimal JavaScript footprint</li>
+        <li transition="slide-up">🖼️ Smart image loading</li>
+        <li transition="slide-up">⌨️ Keyboard navigation with hash routing</li>
+        <li transition="slide-up">🎯 Self-contained HTML files</li>
+      </ul>
+    </slide-page>
+
+    <slide-page transition="slide" id="technical-approach" style="background: var(--demo-pink-gradient)">
+      <h1 style="color: white">🔧 Technical Approach</h1>
+      <div class="two-column">
+        <div transition="slide-left">
+          <h3 style="color: white">Web Components</h3>
+          <ul style="font-size: 2rem; color: rgba(255, 255, 255, 0.9)">
+            <li>Custom elements for structure</li>
+            <li>Standard HTML for content</li>
+            <li>Progressive enhancement</li>
+          </ul>
+        </div>
+        <div transition="slide-left">
+          <h3 style="color: white">Modern CSS</h3>
+          <ul style="font-size: 2rem; color: rgba(255, 255, 255, 0.9)">
+            <li>CSS transforms for scaling</li>
+            <li>Flexbox/Grid for layouts</li>
+            <li>Nested CSS selectors</li>
+          </ul>
+        </div>
+      </div>
+    </slide-page>
+
+    <slide-page transition="zoom" id="demo">
+      <h1>🎨 Beautiful Presentations</h1>
+      <p>
+        This very presentation is built with our framework!
+      </p>
+      <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 3rem">
+        <my-icon style="background: var(--demo-pink-gradient)">🚀</my-icon>
+        <my-icon style="background: var(--demo-blue-gradient)">✨</my-icon>
+        <my-icon style="background: var(--demo-theme-gradient)">⚡</my-icon>
+      </div>
+    </slide-page>
+
+    <slide-page transition="fade" id="thanks" class="title-slide"
+      style="background: var(--demo-theme-gradient)">
+      <h1>🙏 Thank You!</h1>
+      <p>Questions?</p>
+      <div style="margin-top: 4rem; font-size: 2rem; opacity: 0.8">
+        <p>Use ← → arrow keys or space to navigate</p>
+        <p style="margin-top: 1rem">Press 'Z' for zen mode, 'F' for fullscreen</p>
+        <p style="margin-top: 1rem" id="hash-info">
+          Hash navigation available in standalone mode
+        </p>
+      </div>
+    </slide-page>
+
+    <!-- Feature Documentation Slides -->
+    <slide-page>
+      <h1>📚 Complete Feature Reference</h1>
+      <p transition="fade">
+        Let's explore all the features we've built into this framework!
+      </p>
+    </slide-page>
+
+    <slide-page transition="slide">
+      <h1>🏗️ Core Architecture</h1>
+      <ul>
+        <li transition="slide-up">
+          <strong>Custom Elements:</strong> slide-deck, slide-page, slide-viewport
+        </li>
+        <li transition="slide-up">
+          <strong>4:3 Aspect Ratio:</strong> Fixed 1600×1200px slides that scale proportionally
+        </li>
+        <li transition="slide-up">
+          <strong>Absolute Positioning:</strong> Slides removed from document flow
+        </li>
+        <li transition="slide-up">
+          <strong>Smart Scaling:</strong> ResizeObserver + CSS custom properties
+        </li>
+        <li transition="slide-up">
+          <strong>Self-contained:</strong> Single HTML file with no external dependencies
+        </li>
+      </ul>
+    </slide-page>
+
+    <slide-page>
+      <h1>🎨 Slide Transitions</h1>
+      <div class="two-column">
+        <div transition="slide-left">
+          <h3>Global & Local Control</h3>
+          <ul style="font-size: 2rem">
+            <li>Set on slide-deck: <code>transition="fade"</code></li>
+            <li>Override per slide: <code>&lt;slide-page transition="slide"&gt;</code></li>
+          </ul>
+        </div>
+        <div transition="slide-left">
+          <h3>Available Types</h3>
+          <ul style="font-size: 2rem">
+            <li><strong>fade:</strong> Opacity transition</li>
+            <li><strong>slide:</strong> Horizontal movement</li>
+            <li><strong>zoom:</strong> Scale + opacity</li>
+          </ul>
+        </div>
+      </div>
+      <p transition="fade" style="margin-top: 2rem; text-align: center">
+        Proper z-index layering ensures smooth animations!
+      </p>
+    </slide-page>
+
+    <slide-page transition="zoom">
+      <h1>✨ Progressive Element Animations</h1>
+      <div transition="slide-up">
+        <h3>Element-Level Transitions</h3>
+        <p style="font-size: 2rem">Add <code>transition="..."</code> to any element:</p>
+      </div>
+      <ul>
+        <li transition="slide-up"><code>transition="fade"</code> - Simple opacity</li>
+        <li transition="slide-up"><code>transition="slide-up"</code> - Slides from below</li>
+        <li transition="slide-up"><code>transition="slide-left"</code> - Slides from right</li>
+        <li transition="slide-up"><code>transition="zoom-in"</code> - Scales in</li>
+      </ul>
+      <p transition="fade" style="margin-top: 2rem">
+        Headlines always show immediately, other elements animate progressively!
+      </p>
+    </slide-page>
+
+    <slide-page>
+      <h1>⌨️ Navigation & Controls</h1>
+      <div class="two-column">
+        <div transition="slide-left">
+          <h3>Keyboard Navigation</h3>
+          <ul style="font-size: 2rem">
+            <li><strong>→ / Space:</strong> Next step/slide</li>
+            <li><strong>←:</strong> Previous step/slide</li>
+            <li><strong>Z:</strong> Toggle zen mode</li>
+            <li>Document-level listener for reliability</li>
+          </ul>
+        </div>
+        <div transition="slide-left">
+          <h3>UI Controls</h3>
+          <ul style="font-size: 2rem">
+            <li>Previous/Next buttons</li>
+            <li>Slide counter (X / Y)</li>
+            <li>Progress bar at bottom</li>
+            <li>Disabled state management</li>
+          </ul>
+        </div>
+      </div>
+    </slide-page>
+
+    <slide-page>
+      <h1>🧘 Zen Mode</h1>
+      <div style="text-align: center">
+        <p style="font-size: 3rem; margin-bottom: 3rem">
+          Press <strong>Z</strong> to enter zen mode
+        </p>
+        <ul style="font-size: 2.5rem; list-style: none; margin: 0">
+          <li transition="zoom-in" style="margin: 2rem 0">🚫 Hides navigation buttons</li>
+          <li transition="zoom-in" style="margin: 2rem 0">🫥 Transparent control background</li>
+          <li transition="zoom-in" style="margin: 2rem 0">👻 Muted slide counter (30% opacity)</li>
+          <li transition="zoom-in" style="margin: 2rem 0">🎯 Perfect for presentations & recordings</li>
+        </ul>
+        <p style="margin-top: 3rem; opacity: 0.8">
+          Keyboard navigation still works perfectly!
+        </p>
+      </div>
+    </slide-page>
+
+    <slide-page transition="slide">
+      <h1>📱 Responsive Design</h1>
+      <div transition="slide-up">
+        <h3>Smart Breakpoints</h3>
+        <p style="font-size: 2rem">
+          Responsive at 640px width (portrait) or 640px height (landscape)
+        </p>
+      </div>
+      <div class="two-column">
+        <div transition="slide-left">
+          <h3>Mobile Portrait</h3>
+          <ul style="font-size: 2rem">
+            <li>Reduced margin: 24px → 48px</li>
+            <li>Same column layout</li>
+            <li>Better space utilization</li>
+          </ul>
+        </div>
+        <div transition="slide-left">
+          <h3>Mobile Landscape</h3>
+          <ul style="font-size: 2rem">
+            <li>Flex row layout</li>
+            <li>Sidebar controls (120px)</li>
+            <li>Vertical button stack</li>
+            <li>Compact sizing</li>
+          </ul>
+        </div>
+      </div>
+    </slide-page>
+
+    <slide-page>
+      <h1>🖼️ Smart Image Loading</h1>
+      <div transition="slide-up">
+        <p style="font-size: 2.5rem; text-align: center; margin-bottom: 3rem">
+          Optimized performance with lazy loading
+        </p>
+      </div>
+      <ul>
+        <li transition="slide-up">
+          <strong>Adjacent preloading:</strong> Current + previous + next slides
+        </li>
+        <li transition="slide-up">
+          <strong>Lazy by default:</strong> Use <code>loading="lazy"</code> on images
+        </li>
+        <li transition="slide-up">
+          <strong>JS override:</strong> Changes to <code>loading="eager"</code> when needed
+        </li>
+        <li transition="slide-up">
+          <strong>Custom positioning:</strong> Works despite our absolute slide positioning
+        </li>
+      </ul>
+      <p transition="fade" style="margin-top: 2rem; text-align: center">
+        Perfect for presentations with many high-res images!
+      </p>
+    </slide-page>
+
+    <slide-page transition="zoom">
+      <h1>🎛️ Implementation Details</h1>
+      <div class="two-column">
+        <div transition="slide-left">
+          <h3>Modern CSS</h3>
+          <ul style="font-size: 1.8rem">
+            <li>CSS custom properties for scaling</li>
+            <li>Nested selectors for organization</li>
+            <li>CSS transitions for animations</li>
+            <li>Media queries for responsive</li>
+            <li>Backdrop-filter for modern effects</li>
+          </ul>
+        </div>
+        <div transition="slide-left">
+          <h3>JavaScript Features</h3>
+          <ul style="font-size: 1.8rem">
+            <li>Web Components (custom elements)</li>
+            <li>ResizeObserver for scaling</li>
+            <li>Document event listeners</li>
+            <li>Transition state management</li>
+            <li>Progressive enhancement</li>
+          </ul>
+        </div>
+      </div>
+    </slide-page>
+
+    <slide-page class="title-slide">
+      <h1>🎉 Framework Complete!</h1>
+      <div transition="fade">
+        <p style="font-size: 2.5rem; margin: 3rem 0">
+          A modern, lightweight presentation framework
+        </p>
+        <p style="font-size: 2rem; opacity: 0.8">Built with cutting-edge web standards</p>
+      </div>
+    </slide-page>
+  </slide-deck>
+</body>
+
+</html>
