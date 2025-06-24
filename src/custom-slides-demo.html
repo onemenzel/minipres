@@ -19,12 +19,12 @@
       --text-color-light: #4a5568;
       --accent-color: #667eea;
       --surface-color: white;
-      --control-background: rgba(0, 0, 0, 0.1);
-      --button-background: rgba(255, 255, 255, 0.9);
-      --button-text: #4a5568;
+      --controls-backdrop-background: rgba(0, 0, 0, 0.1);
+      --controls-button-background: rgba(255, 255, 255, 0.9);
+      --controls-button-text: #4a5568;
       --progress-color: white;
-      --counter-background: rgba(0, 0, 0, 0.3);
-      --counter-text: white;
+      --controls-counter-background: rgba(0, 0, 0, 0.3);
+      --controls-counter-text: white;
       --transition-duration: .5s;
       --transition-duration-short: .25s;
     }
@@ -238,11 +238,15 @@
         <p style="font-size: 3rem; margin-bottom: 3rem">
           Press <strong>Z</strong> to enter zen mode
         </p>
-        <ul style="font-size: 2.5rem; list-style: none; margin: 0">
-          <li transition="zoom-in" style="margin: 2rem 0">🚫 Hides navigation buttons</li>
-          <li transition="zoom-in" style="margin: 2rem 0">🫥 Transparent control background</li>
-          <li transition="zoom-in" style="margin: 2rem 0">👻 Muted slide counter (30% opacity)</li>
-          <li transition="zoom-in" style="margin: 2rem 0">🎯 Perfect for presentations & recordings</li>
+        <style>
+          .wide-list { font-size: 2.5rem; list-style: none; margin: 0; }
+          .wide-list li { margin-block: 2rem; }
+        </style>
+        <ul class="wide-list">
+          <li transition="zoom-in">🚫 Hides navigation buttons</li>
+          <li transition="zoom-in">🫥 Transparent control background</li>
+          <li transition="zoom-in">👻 Muted slide counter (30% opacity)</li>
+          <li transition="zoom-in">🎯 Perfect for presentations & recordings</li>
         </ul>
         <p style="margin-top: 3rem; opacity: 0.8">
           Keyboard navigation still works perfectly!

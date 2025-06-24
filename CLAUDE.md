@@ -30,4 +30,4 @@ A comprehensive demo presentation showcasing all framework features, including:
 
 ## Important Instructions
 
-TBD
+- in addition to the usual POSIX utils, you can use the following tools: ripgrep, fzf, fd, GNU awk, curl, eza, jq

@@ -376,29 +376,35 @@ const SLIDE_DECK_STYLE = css`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 30px;
+    padding: var(--controls-backdrop-padding, 20px 30px);
     gap: 15px;
-    background: var(--control-background);
-    backdrop-filter: blur(10px);
+    background: var(--controls-backdrop-background, rgba(0, 0, 0, 0.1));
+    backdrop-filter: var(--controls-backdrop-filter, blur(10px));
     flex-shrink: 0;
+    border: var(--controls-backdrop-border, none);
+    border-radius: var(--controls-backdrop-border-radius, 0);
+    box-shadow: var(--controls-backdrop-shadow, none);
+    opacity: var(--controls-backdrop-opacity, 1);
 
     button {
       padding: 15px 25px;
-      background: var(--button-background);
-      color: var(--button-text);
-      border: none;
-      border-radius: 25px;
+      background: var(--controls-button-background, rgba(255, 255, 255, 0.1));
+      color: var(--controls-button-text, #ffffff);
+      border: var(--controls-button-border, none);
+      border-radius: var(--controls-button-border-radius, 25px);
       cursor: pointer;
       font-size: 1.2rem;
       font-weight: 600;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--controls-button-shadow, 0 4px 15px rgba(0, 0, 0, 0.2));
       backdrop-filter: blur(10px);
       transition: all 0.2s ease;
+      opacity: var(--controls-button-opacity, 1);
 
       &:hover {
-        background: var(--surface-color);
+        background: var(--controls-button-hover-background, rgba(255, 255, 255, 0.2));
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--controls-button-hover-shadow, 0 6px 20px rgba(0, 0, 0, 0.3));
+        opacity: var(--controls-button-hover-opacity, 1);
       }
 
       &:focus {
@@ -426,13 +432,16 @@ const SLIDE_DECK_STYLE = css`
   slide-counter {
     display: flex;
     align-items: center;
-    color: var(--counter-text);
-    font-size: 1.2rem;
-    background: var(--counter-background);
-    padding: 10px 20px;
-    border-radius: 20px;
+    color: var(--controls-counter-text, #ffffff);
+    font-size: var(--controls-counter-font-size, 1.2rem);
+    background: var(--controls-counter-background, rgba(0, 0, 0, 0.3));
+    padding: var(--controls-counter-padding, 10px 20px);
+    border: var(--controls-counter-border, none);
+    border-radius: var(--controls-counter-border-radius, 20px);
     backdrop-filter: blur(10px);
     transition: opacity 0.3s ease;
+    opacity: var(--controls-counter-opacity, 1);
+    box-shadow: var(--controls-counter-shadow, none);
   }
 
   slide-progress {
@@ -569,7 +578,7 @@ class SlidePage extends HTMLElement {
    */
   reset(options) {
     const { back } = Object.assign({ back: false }, options);
-    this.currentElementIndex = back ? Math.max(0, this.animatedElements.length - 1) : 0;
+    this.currentElementIndex = back ? this.animatedElements.length : 0;
 
     for (const el of this.animatedElements) {
       if (back) el.classList.add("animate-in");
@@ -596,7 +605,7 @@ class SlidePage extends HTMLElement {
    */
   previous() {
     if (this.currentElementIndex == 0) return false; // might be -1 if there are no elements to be animated
-    this.animateOutElement(this.currentElementIndex);
+    this.animateOutElement(this.currentElementIndex - 1);
     this.currentElementIndex--;
     return true;
   }
@@ -747,6 +756,7 @@ class SlideDeck extends HTMLElement {
     this.preloadAdjacentImages();
     this.updateUI();
     this.updateHashInfo();
+    this.syncZenMode();
 
     window.slideDeck = this;
   }
@@ -810,14 +820,18 @@ class SlideDeck extends HTMLElement {
           if (shouldUpdateIndices) {
             this.setupSlideIds();
           }
-        } else if (mutation.type === "attributes" && mutation.attributeName === "current") {
+        } else if (mutation.type === "attributes") {
           const target = mutation.target;
-          if (target.tagName === "SLIDE-PAGE" && target.hasAttribute("current")) {
+          
+          if (mutation.attributeName === "current" && target.tagName === "SLIDE-PAGE" && target.hasAttribute("current")) {
             // External script set current on a slide - clear others and update state
             this.ensureSingleCurrentSlide(target);
             this.updateUI();
             this.updateHash();
             this.preloadAdjacentImages();
+          } else if (mutation.attributeName === "zen-mode" && target === this) {
+            // Zen-mode attribute changed on host element - sync to shadow DOM
+            this.syncZenMode();
           }
         }
       }
@@ -827,7 +841,7 @@ class SlideDeck extends HTMLElement {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["current"],
+      attributeFilter: ["current", "zen-mode"],
     });
   }
 
@@ -973,10 +987,10 @@ class SlideDeck extends HTMLElement {
   handleKeydown(e) {
     if (this.isTransitioning) return;
 
-    if (e.key === "ArrowRight" || e.key === " ") {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
       e.preventDefault();
       this.nextStep();
-    } else if (e.key === "ArrowLeft") {
+    } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
       e.preventDefault();
       this.previousStep();
     } else if (e.key === "z" || e.key === "Z") {
@@ -1033,8 +1047,22 @@ class SlideDeck extends HTMLElement {
 
   /** Toggles zen mode, which hides most UI controls for distraction-free presentation. */
   toggleZenMode() {
-    if (this.deckRoot.hasAttribute("zen-mode")) this.deckRoot.removeAttribute("zen-mode");
-    else this.deckRoot.setAttribute("zen-mode", "");
+    if (this.hasAttribute("zen-mode")) {
+      this.removeAttribute("zen-mode");
+    } else {
+      this.setAttribute("zen-mode", "");
+    }
+  }
+
+  /**
+   * Syncs zen-mode attribute from host element to shadow DOM root.
+   */
+  syncZenMode() {
+    if (this.hasAttribute("zen-mode")) {
+      this.deckRoot.setAttribute("zen-mode", "");
+    } else {
+      this.deckRoot.removeAttribute("zen-mode");
+    }
   }
 
   /**
