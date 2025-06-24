@@ -186,6 +186,11 @@ const GLOBAL_STYLE = css`
       &[transition-in="zoom"] {
         animation-name: zoomOut;
         animation-direction: reverse;
+
+        &[data-direction="prev"] {
+          animation-name: zoom;
+          animation-direction: normal;
+        }
       }
     }
 
@@ -219,6 +224,11 @@ const GLOBAL_STYLE = css`
       &[transition-out="zoom"] {
         animation-direction: reverse;
         animation-name: zoom;
+
+        &[data-direction="prev"] {
+          animation-name: zoomOut;
+          animation-direction: normal;
+        }
       }
     }
 
@@ -399,8 +409,8 @@ const SLIDE_DECK_STYLE = css`
 
     button {
       padding: 15px 25px;
-      background: var(--controls-button-background, rgba(255, 255, 255, 0.1));
-      color: var(--controls-button-color, #ffffff);
+      background: var(--controls-button-background, rgba(255, 255, 255, 0.2));
+      color: var(--controls-button-color, rgba(0, 15, 35, 0.8));
       border: var(--controls-button-border, none);
       border-radius: var(--controls-button-border-radius, 25px);
       box-shadow: var(--controls-button-shadow, 0 4px 15px rgba(0, 0, 0, 0.2));
@@ -409,11 +419,17 @@ const SLIDE_DECK_STYLE = css`
       font-family: inherit;
       font-weight: 600;
       backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
+      transition:
+        opacity 0.2s ease,
+        color 0.2s ease,
+        border 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
 
       &:hover {
-        background: var(--controls-button-hover-background, rgba(255, 255, 255, 0.2));
-        color: var(--controls-button-hover-color, var(--controls-button-color, #ffffff));
+        background: var(--controls-button-hover-background, white);
+        color: var(--controls-button-hover-color, var(--controls-button-color, rgba(0, 0, 0, 0.8)));
         box-shadow: var(--controls-button-hover-shadow, 0 6px 20px rgba(0, 0, 0, 0.3));
         transform: translateY(-2px);
       }
@@ -590,15 +606,17 @@ class SlidePage extends HTMLElement {
   /**
    * Resets the slide to its initial state, clearing all element animations.
    *
-   * @param {Object} [options] Configuration options
-   * @param {boolean} [options.back=false] If true, resets to the end state (all elements visible)
+   * @param {object} overrides slide state to override
+   * @param {number} overrides.currentElementIndex the element index of teh animated elements to be shown.
+   *                 Set this to `Infinity` for the last element.
    */
-  reset(options) {
-    const { back } = Object.assign({ back: false }, options);
-    this.currentElementIndex = back ? this.animatedElements.length : 0;
+  reset(overrides) {
+    const { currentElementIndex } = Object.assign({ currentElementIndex: 0 }, overrides);
+    this.currentElementIndex = Math.min(this.animatedElements.length, currentElementIndex);
 
-    for (const el of this.animatedElements) {
-      if (back) el.classList.add("animate-in");
+    for (let i = 0; i < this.animatedElements.length; i++) {
+      const el = this.animatedElements[i];
+      if (i < this.currentElementIndex) el.classList.add("animate-in");
       else el.classList.remove("animate-in");
     }
   }
@@ -609,7 +627,7 @@ class SlidePage extends HTMLElement {
    * @returns {boolean} True if an element was animated in, false if no more elements to animate
    */
   next() {
-    if (this.currentElementIndex == this.animatedElements.length) return false;
+    if (!this.animatedElements.length || this.currentElementIndex == this.animatedElements.length) return false;
     this.animateInElement(this.currentElementIndex);
     this.currentElementIndex++;
     return true;
@@ -634,14 +652,12 @@ class SlidePage extends HTMLElement {
    * @param {number} index The index of the element to animate in
    */
   animateInElement(index) {
-    if (index < this.animatedElements.length) {
+    if (this.animatedElements.length && index < this.animatedElements.length) {
       const element = this.animatedElements[index];
       element.classList.add("animate-in");
 
       const textContent = element.textContent?.trim();
-      if (textContent) {
-        LiveRegion.announce(textContent);
-      }
+      if (textContent) LiveRegion.announce(textContent);
     }
   }
 
@@ -651,7 +667,7 @@ class SlidePage extends HTMLElement {
    * @param {number} index The index of the element to animate out
    */
   animateOutElement(index) {
-    if (index < this.animatedElements.length) {
+    if (this.animatedElements.length && index < this.animatedElements.length) {
       const element = this.animatedElements[index];
       element.classList.remove("animate-in");
     }
@@ -663,9 +679,7 @@ class SlidePage extends HTMLElement {
    */
   preloadImages() {
     const lazyImages = this.querySelectorAll('img[loading="lazy"]');
-    for (const img of lazyImages) {
-      img.loading = "eager";
-    }
+    for (const img of lazyImages) img.loading = "eager";
   }
 }
 
@@ -785,15 +799,9 @@ class SlideDeck extends HTMLElement {
    * Cleans up event listeners and other resources.
    */
   disconnectedCallback() {
-    if (this.keydownHandler) {
-      document.removeEventListener("keydown", this.keydownHandler);
-    }
-    if (this.hashChangeHandler) {
-      window.removeEventListener("hashchange", this.hashChangeHandler);
-    }
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
-    }
+    if (this.keydownHandler) document.removeEventListener("keydown", this.keydownHandler);
+    if (this.hashChangeHandler) window.removeEventListener("hashchange", this.hashChangeHandler);
+    if (this.mutationObserver) this.mutationObserver.disconnect();
   }
 
   /**
@@ -802,9 +810,7 @@ class SlideDeck extends HTMLElement {
    */
   cleanupSlot() {
     for (const child of Array.from(this.children)) {
-      if (child.tagName !== "SLIDE-PAGE") {
-        child.remove();
-      }
+      if (child.tagName !== "SLIDE-PAGE") child.remove();
     }
   }
 
@@ -820,11 +826,8 @@ class SlideDeck extends HTMLElement {
 
           // Remove invalid children as they're added
           for (const node of mutation.addedNodes) {
-            if (node.nodeType === 1 && node.tagName !== "SLIDE-PAGE") {
-              node.remove();
-            } else if (node.nodeType === 1 && node.tagName === "SLIDE-PAGE") {
-              shouldUpdateIndices = true;
-            }
+            if (node.nodeType === 1 && node.tagName !== "SLIDE-PAGE") node.remove();
+            else if (node.nodeType === 1 && node.tagName === "SLIDE-PAGE") shouldUpdateIndices = true;
           }
 
           // Check if any slide-page nodes were removed
@@ -836,9 +839,7 @@ class SlideDeck extends HTMLElement {
           }
 
           // Update IDs and indices if slides were added/removed
-          if (shouldUpdateIndices) {
-            this.setupSlideIds();
-          }
+          if (shouldUpdateIndices) this.setupSlideIds();
         } else if (mutation.type === "attributes") {
           const target = mutation.target;
 
@@ -874,9 +875,7 @@ class SlideDeck extends HTMLElement {
    */
   ensureSingleCurrentSlide(currentSlide) {
     for (const slide of this.querySelectorAll("slide-page[current]")) {
-      if (slide !== currentSlide) {
-        slide.removeAttribute("current");
-      }
+      if (slide !== currentSlide) slide.removeAttribute("current");
     }
   }
 
@@ -887,9 +886,7 @@ class SlideDeck extends HTMLElement {
   setupSlideIds() {
     const slides = this.slidePages;
     for (let i = 0; i < slides.length; i++) {
-      if (!slides[i].id) {
-        slides[i].id = `slide-${i + 1}`;
-      }
+      if (!slides[i].id) slides[i].id = `slide-${i + 1}`;
       slides[i].dataset.index = i.toString();
     }
   }
@@ -948,9 +945,7 @@ class SlideDeck extends HTMLElement {
     const hash = window.location.hash.slice(1);
     if (hash) {
       const targetSlide = this.querySelector(`slide-page#${hash}`);
-      if (targetSlide && targetSlide !== this.currentSlide) {
-        this.goToSlide(targetSlide);
-      }
+      if (targetSlide && targetSlide !== this.currentSlide) this.goToSlide(targetSlide);
     }
   }
 
@@ -1054,66 +1049,56 @@ class SlideDeck extends HTMLElement {
   nextSlide() {
     if (this.isTransitioning) return;
     const next = this.currentSlide?.nextElementSibling;
-    if (next) {
-      this.goToSlide(next, "next");
-    }
+    if (next) this.goToSlide(next, "next");
   }
 
   /** Navigates to the previous slide. */
   previousSlide() {
     if (this.isTransitioning) return;
     const prev = this.currentSlide?.previousElementSibling;
-    if (prev) {
-      this.goToSlide(prev, "prev");
-    }
+    if (prev) this.goToSlide(prev, "prev");
   }
 
   /** Toggles zen mode, which hides most UI controls for distraction-free presentation. */
   toggleZenMode() {
-    if (this.hasAttribute("zen-mode")) {
-      this.removeAttribute("zen-mode");
-    } else {
-      this.setAttribute("zen-mode", "");
-    }
+    if (this.hasAttribute("zen-mode")) this.removeAttribute("zen-mode");
+    else this.setAttribute("zen-mode", "");
   }
 
   /**
    * Syncs zen-mode attribute from host element to shadow DOM root.
    */
   syncZenMode() {
-    if (this.hasAttribute("zen-mode")) {
-      this.deckRoot.setAttribute("zen-mode", "");
-    } else {
-      this.deckRoot.removeAttribute("zen-mode");
-    }
+    if (this.hasAttribute("zen-mode")) this.deckRoot.setAttribute("zen-mode", "");
+    else this.deckRoot.removeAttribute("zen-mode");
   }
 
   /**
    * Core slide navigation method with animated transitions.
-   * @param {Element} targetSlide The target slide element
+   * @param {SlidePage} targetSlide The target slide element
    * @param {string} [direction="next"] The direction of navigation ("next" or "prev")
+   * @param {number} timeout timeout after which the animation will be cleaned up
    */
-  performSlideTransition(targetSlide, direction = "next") {
+  performSlideTransition(targetSlide, direction = "next", timeout = 1000) {
     if (this.isTransitioning || !targetSlide) return;
 
     const currentSlide = this.currentSlide;
     if (!currentSlide) {
       // No current slide, just set the target as current
       targetSlide.setAttribute("current", "");
-      targetSlide.reset({ back: direction === "prev" });
-      this.updateUI();
-      this.updateHash();
+      targetSlide.reset({ currentElementIndex: direction === "next" ? 0 : Infinity });
       return;
     }
 
     this.isTransitioning = true;
+    let aniCtl = new AbortController();
+    const waitForAniEnd = (slide) =>
+      new Promise((res) => void slide.addEventListener("animationend", res, { signal: aniCtl.signal }));
 
     currentSlide.dataset.direction = direction;
     targetSlide.dataset.direction = direction;
 
-    let aniCtl = new AbortController();
-
-    const cleanupTransition = () => {
+    const finishTransition = () => {
       currentSlide.removeAttribute("current");
       targetSlide.setAttribute("current", "");
 
@@ -1123,35 +1108,29 @@ class SlideDeck extends HTMLElement {
       delete targetSlide.dataset.direction;
 
       aniCtl.abort();
-
       this.isTransitioning = false;
-      this.preloadAdjacentImages();
-      this.updateUI();
     };
 
     requestAnimationFrame(() => {
-      targetSlide.reset({ back: direction === "prev" });
-
-      currentSlide.classList.add("slide-exiting");
-      targetSlide.classList.add("slide-entering");
-
-      this.updateHash();
+      targetSlide.reset({ currentElementIndex: direction === "next" ? 0 : Infinity });
 
       const slideIndex = parseInt(targetSlide.dataset.index || "0", 10);
       const slideTitle = targetSlide.querySelector("h1, h2, h3")?.textContent || `Slide ${slideIndex + 1}`;
-      LiveRegion.announce(`Now on ${slideTitle}`);
+
+      LiveRegion.announce(`Going to ${slideTitle}`);
+
+      // starts the animation
+      currentSlide.classList.add("slide-exiting");
+      targetSlide.classList.add("slide-entering");
 
       Promise.race([
-        Promise.all([
-          new Promise((res) => void currentSlide.addEventListener("animationend", res, { signal: aniCtl.signal })),
-          new Promise((res) => void targetSlide.addEventListener("animationend", res, { signal: aniCtl.signal })),
-        ]),
-        new Promise((res) => void setTimeout(res, 1000)), // fallback cleanup
-      ])
-        .then(cleanupTransition)
+        Promise.all([waitForAniEnd(currentSlide), waitForAniEnd(targetSlide)]),
+        new Promise((res) => void setTimeout(res, timeout)),
+      ]) // with fallback cleanup
+        .then(finishTransition)
         .catch((e) => {
           console.error(e);
-          cleanupTransition();
+          finishTransition();
         });
     });
   }
@@ -1165,10 +1144,7 @@ class SlideDeck extends HTMLElement {
     if (!current) return;
 
     const slidesToPreload = [current.previousElementSibling, current, current.nextElementSibling].filter(Boolean);
-
-    for (const slide of slidesToPreload) {
-      slide.preloadImages();
-    }
+    for (const slide of slidesToPreload) slide.preloadImages();
   }
 
   /** Updates the presentation UI elements (progress bar, counter, button states). */
@@ -1192,9 +1168,7 @@ class SlideDeck extends HTMLElement {
 
     // Update counter
     const counter = this.shadow.querySelector("slide-counter");
-    if (counter) {
-      counter.textContent = `${currentPosition} / ${slideCount}`;
-    }
+    if (counter) counter.textContent = `${currentPosition} / ${slideCount}`;
 
     // Update button states
     const prevBtn = this.shadow.getElementById("prevBtn");
@@ -1207,11 +1181,8 @@ class SlideDeck extends HTMLElement {
   updateHashInfo() {
     const hashInfo = document.getElementById("hash-info");
     if (hashInfo) {
-      if (this.isArtifactEnvironment) {
-        hashInfo.textContent = "Hash navigation available in standalone mode";
-      } else {
-        hashInfo.textContent = "URLs work too: try #features or #demo";
-      }
+      if (this.isArtifactEnvironment) hashInfo.textContent = "Hash navigation available in standalone mode";
+      else hashInfo.textContent = "URLs work too: try #features or #demo";
     }
   }
 }

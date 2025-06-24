@@ -30,4 +30,5 @@ A comprehensive demo presentation showcasing all framework features, including:
 
 ## Important Instructions
 
-- in addition to the usual POSIX utils, you can use the following tools: ripgrep, fzf, fd, GNU awk, curl, eza, jq
+- in addition to the usual POSIX utils, you can use the following tools: ripgrep, fzf, fd, GNU awk, curl, eza, jq.
+- use the `void` keyword and no curly braces in arrow functions that have only one statement, where the return value does not matter.
