@@ -18,5 +18,6 @@ $CLAUDE_CONTAINER_HOST run \
 	--mount type=volume,chown,src=home,dst=/root \
 	--mount type=bind,src=$PWD,dst=/root/project \
 	--mount type=bind,ro,src=$PWD/claude.sh,dst=/root/project/claude.sh \
+	--entrypoint claude \
 	gitlab.studiumdigitale.uni-frankfurt.de/dipfxsd/tools/claude-container:latest \
 || $CLAUDE_CONTAINER_HOST start -ai $CLAUDE_CONTAINER_NAME
