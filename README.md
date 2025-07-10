@@ -14,6 +14,8 @@ A lightweight, web-native presentation framework built with modern web technolog
 - **♿ Accessibility**: Screen reader support and ARIA attributes
 - **🧘 Zen Mode**: Distraction-free presentation mode
 
+![MiniPres Demo](demo.png)
+
 ## 🚀 Quick Start
 
 1. Include the framework:
