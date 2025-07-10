@@ -32,3 +32,4 @@ A comprehensive demo presentation showcasing all framework features, including:
 
 - in addition to the usual POSIX utils, you can use the following tools: ripgrep, fzf, fd, GNU awk, curl, eza, jq.
 - use the `void` keyword and no curly braces in arrow functions that have only one statement, where the return value does not matter.
+- if you are instructed to download sth. to a file, use `curl -s $THE_URL > $THE_FILENAME`
