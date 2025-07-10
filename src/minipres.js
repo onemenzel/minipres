@@ -104,27 +104,27 @@ const GLOBAL_STYLE = css`
     }
   }
 
-  @keyframes zoom {
+  @keyframes zoomIn {
     from {
-      transform: scale(calc(var(--slide-scale, 1) * 0.8));
-      opacity: 0;
+      transform: scale(var(--slide-scale, 1));
+      opacity: 1;
     }
 
     to {
-      transform: scale(var(--slide-scale, 1));
-      opacity: 1;
+      transform: scale(calc(var(--slide-scale, 1) * 0.8));
+      opacity: 0;
     }
   }
 
   @keyframes zoomOut {
     from {
-      transform: scale(var(--slide-scale, 1));
-      opacity: 1;
+      transform: scale(calc(var(--slide-scale, 1) * 1.2));
+      opacity: 0;
     }
 
     to {
-      transform: scale(calc(var(--slide-scale, 1) * 1.2));
-      opacity: 0;
+      transform: scale(var(--slide-scale, 1));
+      opacity: 1;
     }
   }
 
@@ -185,11 +185,10 @@ const GLOBAL_STYLE = css`
 
       &[transition-in="zoom"] {
         animation-name: zoomOut;
-        animation-direction: reverse;
 
         &[data-direction="prev"] {
-          animation-name: zoom;
-          animation-direction: normal;
+          animation-name: zoomIn;
+          animation-direction: reverse;
         }
       }
     }
@@ -222,12 +221,11 @@ const GLOBAL_STYLE = css`
       }
 
       &[transition-out="zoom"] {
-        animation-direction: reverse;
-        animation-name: zoom;
+        animation-name: zoomIn;
 
         &[data-direction="prev"] {
           animation-name: zoomOut;
-          animation-direction: normal;
+          animation-direction: reverse;
         }
       }
     }
@@ -1200,7 +1198,7 @@ class LiveRegion extends HTMLElement {
    * Sets up event listener and accessibility attributes.
    */
   connectedCallback() {
-    this.announceListener = (e) => void this._announce(e.detail.message);
+    this.announceListener = (e) => void this.#announce(e.detail.message);
     document.addEventListener("announce", this.announceListener);
     this.setAttribute("aria-live", "polite");
     this.setAttribute("aria-atomic", "true");
@@ -1218,7 +1216,7 @@ class LiveRegion extends HTMLElement {
    * Internal method to announce a message to screen readers.
    * @param {string} message The message to announce
    */
-  _announce(message) {
+  #announce(message) {
     this.textContent = message;
     setTimeout(() => void (this.textContent = ""), 1000);
   }
