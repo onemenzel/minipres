@@ -12,7 +12,7 @@ This project is a lightweight, web-native presentation framework built with mode
 
 ### `src/minipres.js`
 
-The main JavaScript framework (900+ lines) that implements:
+The main JavaScript framework that implements:
 
 - **Web Components**: Custom elements (`slide-deck`, `slide-page`, `slide-viewport`)
 - **Slide Management**: Navigation, transitions, and state management

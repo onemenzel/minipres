@@ -93,7 +93,7 @@ Add progressive animations to elements within slides using the `transition` attr
 - `zoom-in` - Scales in from small
 
 **Important behavior:**
-- **Headings first**: h1, h2, and h3 elements appear immediately and don't participate in progressive animation
+- **Headings first**: The first heading element (h1, h2, or h3) in each slide appears immediately and doesn't participate in progressive animation
 - **Sequential animation**: Other elements animate in the order they appear in your HTML
 - **Accessibility**: Each element's content is announced to screen readers when it appears
 
@@ -121,7 +121,8 @@ Use `loading="lazy"` on images. The framework will automatically optimize loadin
 - `slide` - Horizontal slide movement
 - `slide-rotate` - Slide with Y-axis rotation
 - `zoom` - Scale in from small
-- `zoom-out` - Scale out to large (reverse of zoom)
+
+Each transition has both `transition-in` and `transition-out` variants that automatically handle direction.
 
 Direction is automatically detected based on navigation (next/previous).
 
@@ -643,7 +644,7 @@ slide-page#slow-slide {
 
 ## File Structure
 
-- `minipres.js` - Main framework file (~1300 lines)
+- `minipres.js` - Main framework file (about 1300 lines)
 - `presentation.html` - Your presentation file
 - Include the script and start building slides!
 
