@@ -145,7 +145,7 @@ Add smooth animations to any element within slides:
 ### Usage
 ```html
 <slide-page>
-  <h1>Always shows immediately</h1>
+  <h1>First heading shows immediately</h1>
   <p transition="fade">Fades in after headline</p>
   <ul>
     <li transition="slide-up">Animates in sequence</li>
@@ -179,7 +179,7 @@ Set transitions at the deck or slide level with fine-grained control:
 - **→ / Space / PgDown** - Next step or slide
 - **← / PgUp** - Previous step or slide  
 - **Z** - Toggle zen mode
-- **F** - Fullscreen (browser dependent)
+- **F** - Toggle fullscreen mode
 
 ### UI Controls
 - **Previous/Next buttons** - Click navigation
@@ -276,7 +276,7 @@ Built-in accessibility features:
 ### File Structure
 ```
 src/
-├── minipres.js           # Main framework (900+ lines)
+├── minipres.js           # Main framework (about 1300 lines)
 └── custom-slides-demo.html  # Feature demonstration
 ```
 
