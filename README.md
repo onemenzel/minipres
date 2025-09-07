@@ -20,3 +20,4 @@ A lightweight, web-native presentation framework built with modern web technolog
 
 1. Leave Github and go to the [Codeberg Repo](https://codeberg.org/onemenzel/minipres) where this
    project lives now b/c I despise M$.
+2. Continue there.
